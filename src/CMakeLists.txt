@@ -10,7 +10,7 @@ add_executable(
 		main.cpp
 		mainwindow.cpp
 		processdata.cpp
-		procselector.cpp
+		processselector.cpp
 		server.cpp
 		traceeventmodel.cpp
 		traceview.cpp

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QJsonObject>
+#include <QObject>
 #include <QStringList>
 #include <QVector>
 
@@ -39,9 +40,22 @@ struct TraceEvent {
 
 	TraceEvent(QJsonObject tp = {});
 
+	QString file() const;
+
+	int line() const;
+
 };
 
-struct ProcessData {
-	QString cmd;
-	QVector<TraceEvent> traceEvents;
+struct ProcessData: public QObject {
+	Q_OBJECT
+
+	public:
+		QString cmd;
+		QVector<TraceEvent> traceEvents;
+
+	signals:
+		/**
+		 * Emitted whenever a new TraceEvent is added.
+		 */
+		void traceEvent(const TraceEvent&);
 };

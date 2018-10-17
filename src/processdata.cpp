@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#include <QDebug>
 #include <QJsonArray>
 
 #include "processdata.hpp"
@@ -31,10 +32,19 @@ Frame::Frame(QJsonObject frame) {
 }
 
 TraceEvent::TraceEvent(QJsonObject tp) {
-	this->logMsg = tp["trace_msg"].toString();
+	this->channel = tp["channel"].toString();
+	this->logMsg = tp["log_msg"].toString();
 	auto frames = tp["frames"].toArray();
 	for (auto frame : frames) {
 		this->frames.push_back(frame.toObject());
 	}
+}
+
+QString TraceEvent::file() const {
+	return this->frames[0].file;
+}
+
+int TraceEvent::line() const {
+	return this->frames[0].line;
 }
 

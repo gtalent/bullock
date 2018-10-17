@@ -10,19 +10,22 @@
 
 #include "processdata.hpp"
 
-#include <QAbstractItemModel>
+#include <QAbstractTableModel>
 
 
-class TraceEventModel: public QAbstractItemModel {
+class TraceEventModel: public QAbstractTableModel {
 	Q_OBJECT
 
-	private:
+	public:
 		enum Column {
-			Channel,
+			Channel = 0,
+			Source,
 			Message,
 			End
 		};
 
+	private:
+		QVector<TraceEvent> m_traceEvents;
 		ProcessData *m_procData = nullptr;
 
 	public:
@@ -30,5 +33,12 @@ class TraceEventModel: public QAbstractItemModel {
 
 		int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
+		QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+
 		QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+		void setProcessData(ProcessData *data);
+
+	public slots:
+		void addEvent(const TraceEvent &event);
 };

@@ -13,11 +13,13 @@
 
 int main(int argc, char **args) {
 	QApplication app(argc, args);
+	app.setApplicationName("Bullock");
+	app.setOrganizationName("DrinkingTea");
+	app.setOrganizationDomain("drinkingtea.net");
 
 	LogServer server;
 
 	MainWindow w;
-	app.setApplicationName(w.windowTitle());
 	w.show();
 
 	QObject::connect(&server, &LogServer::newDataFeed, &w, &MainWindow::addDataFeed);

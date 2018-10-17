@@ -14,8 +14,6 @@
 #include <QMenuBar>
 #include <QSplitter>
 
-#include "traceview.hpp"
-
 #include "mainwindow.hpp"
 
 MainWindow::MainWindow() {
@@ -33,10 +31,12 @@ MainWindow::MainWindow() {
 	auto leftPane = new QWidget(this);
 	auto leftPaneSplitter = new QSplitter(Qt::Vertical, leftPane);
 	m_procSelector = new ProcessSelector(leftPaneSplitter);
+	connect(m_procSelector, &ProcessSelector::selectionChanged, this, &MainWindow::setProcess);
 	leftPaneSplitter->addWidget(m_procSelector);
 
 	splitter->addWidget(leftPaneSplitter);
-	splitter->addWidget(new TraceView(splitter));
+	m_traceView = new TraceView(splitter);
+	splitter->addWidget(m_traceView);
 	splitter->setStretchFactor(1, 3);
 
 	setCentralWidget(splitter);
@@ -47,9 +47,19 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::addDataFeed(DataFeed *feed) {
-	m_procData.push_back(feed->procData());
 	auto time = QDateTime::currentDateTime();
-	m_procSelector->addProcess(time.toString());
+	auto procKey = time.toString();
+	m_procData[procKey] = feed->procData();
+	m_procSelector->addProcess(procKey);
+}
+
+void MainWindow::setProcess(QString procKey) {
+	if (m_procData.contains(procKey)) {
+		m_currentProc = m_procData[procKey].data();
+	} else {
+		m_currentProc = nullptr;
+	}
+	m_traceView->setProcessData(m_currentProc);
 }
 
 void MainWindow::setupMenu() {

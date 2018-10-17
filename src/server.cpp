@@ -32,9 +32,14 @@ void DataFeed::handleInit() {
 
 void DataFeed::read() {
 	while (m_dev->bytesAvailable()) {
-		auto doc = QJsonDocument::fromJson(m_dev->readLine());
+		const auto doc = QJsonDocument::fromJson(m_dev->readLine());
 		if (m_procData) {
-			m_procData->traceEvents.push_back(doc.object());
+			const auto msg = doc.object();
+			if (msg["type"] == "TraceEvent") {
+				const auto te = msg["data"].toObject();
+				m_procData->traceEvents.push_back(te);
+				emit m_procData->traceEvent(m_procData->traceEvents.last());
+			}
 		}
 	}
 }

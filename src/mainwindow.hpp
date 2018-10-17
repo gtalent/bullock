@@ -8,15 +8,19 @@
 
 #include <QMainWindow>
 
-#include "procselector.hpp"
+#include "processselector.hpp"
+#include "traceview.hpp"
+
 #include "server.hpp"
 
 class MainWindow: public QMainWindow {
 	Q_OBJECT
 
 	private:
-		QVector<QSharedPointer<ProcessData>> m_procData;
+		QHash<QString, QSharedPointer<ProcessData>> m_procData;
+		ProcessData *m_currentProc = nullptr;
 		ProcessSelector *m_procSelector = nullptr;
+		TraceView *m_traceView = nullptr;
 
 	public:
 		MainWindow();
@@ -25,6 +29,9 @@ class MainWindow: public QMainWindow {
 
 	public slots:
 		void addDataFeed(DataFeed*);
+
+	private slots:
+		void setProcess(QString procKey);
 
 	private:
 		void setupMenu();
