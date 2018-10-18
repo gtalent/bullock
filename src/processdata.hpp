@@ -24,6 +24,7 @@ struct Field {
 };
 
 struct Frame {
+	QString function;
 	QString arch;
 	QString file;
 	int line = 0;
@@ -50,7 +51,7 @@ struct ProcessData: public QObject {
 	Q_OBJECT
 
 	public:
-		QString cmd;
+		QString procKey;
 		QVector<TraceEvent> traceEvents;
 
 	signals:

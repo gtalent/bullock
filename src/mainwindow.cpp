@@ -12,6 +12,7 @@
 #include <QDesktopWidget>
 #include <QHBoxLayout>
 #include <QMenuBar>
+#include <QSettings>
 #include <QSplitter>
 
 #include "mainwindow.hpp"
@@ -26,7 +27,7 @@ MainWindow::MainWindow() {
 	move(screenSize.width() * (1 - sizePct) / 2, screenSize.height() * (1 - sizePct) / 2);
 
 	auto central = new QWidget(this);
-	auto splitter = new QSplitter(central);
+	m_splitter = new QSplitter(central);
 
 	auto leftPane = new QWidget(this);
 	auto leftPaneSplitter = new QSplitter(Qt::Vertical, leftPane);
@@ -34,23 +35,42 @@ MainWindow::MainWindow() {
 	connect(m_procSelector, &ProcessSelector::selectionChanged, this, &MainWindow::setProcess);
 	leftPaneSplitter->addWidget(m_procSelector);
 
-	splitter->addWidget(leftPaneSplitter);
-	m_traceView = new TraceView(splitter);
-	splitter->addWidget(m_traceView);
-	splitter->setStretchFactor(1, 3);
+	m_splitter->addWidget(leftPaneSplitter);
+	m_traceView = new TraceView(m_splitter);
+	m_splitter->addWidget(m_traceView);
+	m_splitter->setStretchFactor(1, 3);
 
-	setCentralWidget(splitter);
+	setCentralWidget(m_splitter);
 	setupMenu();
+
+	readState();
 }
 
 MainWindow::~MainWindow() {
+	writeState();
 }
 
 void MainWindow::addDataFeed(DataFeed *feed) {
-	auto time = QDateTime::currentDateTime();
-	auto procKey = time.toString();
+	auto &procKey = feed->procData()->procKey;
+	if (procKey == "") {
+		procKey = QDateTime::currentDateTime().toString();
+	}
 	m_procData[procKey] = feed->procData();
 	m_procSelector->addProcess(procKey);
+}
+
+void MainWindow::readState() {
+	QSettings settings;
+	settings.beginGroup("MainWindow");
+	m_splitter->restoreState(settings.value("splitterState").toByteArray());
+	settings.endGroup();
+}
+
+void MainWindow::writeState() {
+	QSettings settings;
+	settings.beginGroup("MainWindow");
+	settings.setValue("splitterState", m_splitter->saveState());
+	settings.endGroup();
 }
 
 void MainWindow::setProcess(QString procKey) {

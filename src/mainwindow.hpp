@@ -7,6 +7,7 @@
  */
 
 #include <QMainWindow>
+#include <QSplitter>
 
 #include "processselector.hpp"
 #include "traceview.hpp"
@@ -18,6 +19,7 @@ class MainWindow: public QMainWindow {
 
 	private:
 		QHash<QString, QSharedPointer<ProcessData>> m_procData;
+		QSplitter *m_splitter = nullptr;
 		ProcessData *m_currentProc = nullptr;
 		ProcessSelector *m_procSelector = nullptr;
 		TraceView *m_traceView = nullptr;
@@ -29,6 +31,11 @@ class MainWindow: public QMainWindow {
 
 	public slots:
 		void addDataFeed(DataFeed*);
+
+	private:
+		void readState();
+
+		void writeState();
 
 	private slots:
 		void setProcess(QString procKey);

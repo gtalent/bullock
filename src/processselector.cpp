@@ -8,6 +8,7 @@
 
 #include <QDebug>
 #include <QLabel>
+#include <QListWidget>
 #include <QVBoxLayout>
 
 #include "processselector.hpp"

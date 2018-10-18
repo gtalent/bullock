@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <QSplitter>
 #include <QTableView>
 #include <QWidget>
 
+#include "callstackmodel.hpp"
 #include "traceeventmodel.hpp"
 
 #include "processdata.hpp"
@@ -19,7 +21,10 @@ class TraceView: public QWidget {
 	Q_OBJECT
 
 	private:
-		QTableView *m_eventTable;
+		QTableView *m_eventTable = nullptr;
+		QTableView *m_callStack = nullptr;
+		QSplitter *m_splitter = nullptr;
+		CallStackModel *m_callStackModel = nullptr;
 		TraceEventModel *m_model = nullptr;
 
 	public:

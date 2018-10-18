@@ -15,7 +15,7 @@ DataFeed::DataFeed(QIODevice *dev): QObject(dev) {
 	connect(m_dev, &QIODevice::readyRead, this, &DataFeed::handleInit);
 }
 
-QSharedPointer<ProcessData> DataFeed::procData() {
+const QSharedPointer<ProcessData> &DataFeed::procData() {
 	return m_procData;
 }
 

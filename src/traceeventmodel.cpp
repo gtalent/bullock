@@ -80,6 +80,13 @@ void TraceEventModel::setProcessData(ProcessData *data) {
 	endResetModel();
 }
 
+TraceEvent TraceEventModel::traceEvent(int row) {
+	if (m_procData) {
+		return m_procData->traceEvents[row];
+	}
+	return {};
+}
+
 void TraceEventModel::addEvent(const TraceEvent &event) {
 	auto index = m_traceEvents.size();
 	beginInsertRows(QModelIndex(), index, index);

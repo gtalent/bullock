@@ -28,7 +28,7 @@ class DataFeed: public QObject {
 	public:
 		DataFeed(QIODevice *dev);
 
-		QSharedPointer<ProcessData> procData();
+		const QSharedPointer<ProcessData> &procData();
 
 	public slots:
 		void handleInit();

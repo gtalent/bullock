@@ -7,6 +7,7 @@ set(CMAKE_AUTOMOC ON)
 
 add_executable(
 	bullock MACOSX_BUNDLE
+		callstackmodel.cpp
 		main.cpp
 		mainwindow.cpp
 		processdata.cpp

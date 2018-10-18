@@ -23,6 +23,7 @@ Field::Field(QJsonObject field) {
 
 Frame::Frame(QJsonObject frame) {
 	this->arch = frame["arch"].toString();
+	this->function = frame["function"].toString();
 	this->file = frame["file"].toString();
 	this->line = frame["line"].toDouble();
 	auto fields = frame["fields"].toArray();

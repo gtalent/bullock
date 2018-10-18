@@ -13,20 +13,18 @@
 #include <QAbstractTableModel>
 
 
-class TraceEventModel: public QAbstractTableModel {
+class CallStackModel: public QAbstractTableModel {
 	Q_OBJECT
 
 	public:
 		enum Column {
-			Channel = 0,
+			Function = 0,
 			Source,
-			Message,
 			End
 		};
 
 	private:
-		QVector<TraceEvent> m_traceEvents;
-		ProcessData *m_procData = nullptr;
+		QVector<Frame> m_frames;
 
 	public:
 		int rowCount(const QModelIndex &parent = QModelIndex()) const override ;
@@ -37,11 +35,9 @@ class TraceEventModel: public QAbstractTableModel {
 
 		QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
-		void setProcessData(ProcessData *data);
-
-		TraceEvent traceEvent(int row);
+		void clear();
 
 	public slots:
-		void addEvent(const TraceEvent &event);
+		void setTraceEvent(const TraceEvent &event);
 
 };
