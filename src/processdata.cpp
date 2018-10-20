@@ -13,7 +13,7 @@
 
 Field::Field(QJsonObject field) {
 	this->name = field["name"].toString();
-	this->type = field["field_type"].toString();
+	this->type = field["type"].toString();
 	this->value = field["value"].toString();
 	auto fields = field["fields"].toArray();
 	for (auto field : fields) {

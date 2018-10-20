@@ -25,7 +25,8 @@ static QTreeWidgetItem *treeItem(const Field &field, QTreeWidget *treeWidget, QT
 		//treeWidget->addChild(item);
 	}
 	item->setData(0, Qt::DisplayRole, field.name);
-	item->setData(1, Qt::DisplayRole, field.value);
+	item->setData(1, Qt::DisplayRole, field.type);
+	item->setData(2, Qt::DisplayRole, field.value);
 	for (const auto &f : field.fields) {
 		treeItem(f, treeWidget, item);
 	}
@@ -48,6 +49,8 @@ TraceView::TraceView(QWidget *parent): QWidget(parent) {
 	m_eventTable->setSelectionMode(QAbstractItemView::SingleSelection);
 	connect(m_eventTable->selectionModel(), &QItemSelectionModel::selectionChanged,
 	        [this](const QItemSelection &selected, const QItemSelection &deselected) {
+		m_frameTableModel->clear();
+		m_fieldView->clear();
 		auto indexes = selected.indexes();
 		if (indexes.size()) {
 			m_selectedEvent = indexes[0].row();
@@ -75,7 +78,7 @@ TraceView::TraceView(QWidget *parent): QWidget(parent) {
 	m_fieldView = new QTreeWidget(this);
 	m_fieldView->header()->setStretchLastSection(true);
 	m_fieldView->setSelectionMode(QAbstractItemView::NoSelection);
-	m_fieldView->setHeaderLabels({tr("Name"), tr("Value")});
+	m_fieldView->setHeaderLabels({tr("Name"), tr("Type"), tr("Value")});
 	m_lowerSplitter->addWidget(m_fieldView);
 
 
@@ -120,6 +123,7 @@ void TraceView::writeState() {
 void TraceView::setProcessData(ProcessData *data) {
 	m_model->setProcessData(data);
 	m_frameTableModel->clear();
+	m_fieldView->clear();
 }
 
 void TraceView::handleFrameSelection(const QItemSelection &selected, const QItemSelection &deselected) {
