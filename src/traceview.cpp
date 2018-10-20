@@ -79,6 +79,7 @@ TraceView::TraceView(QWidget *parent): QWidget(parent) {
 	m_fieldView->header()->setStretchLastSection(true);
 	m_fieldView->setSelectionMode(QAbstractItemView::NoSelection);
 	m_fieldView->setHeaderLabels({tr("Name"), tr("Type"), tr("Value")});
+	m_fieldView->setAlternatingRowColors(true);
 	m_lowerSplitter->addWidget(m_fieldView);
 
 
