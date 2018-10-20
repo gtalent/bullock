@@ -10,6 +10,7 @@
 
 #include <QSplitter>
 #include <QTableView>
+#include <QTreeWidget>
 #include <QWidget>
 
 #include "callstackmodel.hpp"
@@ -21,10 +22,13 @@ class TraceView: public QWidget {
 	Q_OBJECT
 
 	private:
+		int m_selectedEvent = 0;
 		QTableView *m_eventTable = nullptr;
-		QTableView *m_callStack = nullptr;
+		QTableView *m_frameTable = nullptr;
+		QTreeWidget *m_fieldView = nullptr;
 		QSplitter *m_splitter = nullptr;
-		CallStackModel *m_callStackModel = nullptr;
+		QSplitter *m_lowerSplitter = nullptr;
+		CallStackModel *m_frameTableModel = nullptr;
 		TraceEventModel *m_model = nullptr;
 
 	public:
@@ -38,5 +42,8 @@ class TraceView: public QWidget {
 		void readState();
 
 		void writeState();
+
+	private slots:
+		void handleFrameSelection(const QItemSelection &selected, const QItemSelection &deselected);
 
 };

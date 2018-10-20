@@ -15,6 +15,23 @@
 
 #include "traceview.hpp"
 
+static QTreeWidgetItem *treeItem(const Field &field, QTreeWidget *treeWidget, QTreeWidgetItem *parent = nullptr) {
+	QTreeWidgetItem *item = nullptr;
+	if (parent) {
+		item = new QTreeWidgetItem(parent);
+		parent->addChild(item);
+	} else {
+		item = new QTreeWidgetItem(treeWidget);
+		//treeWidget->addChild(item);
+	}
+	item->setData(0, Qt::DisplayRole, field.name);
+	item->setData(1, Qt::DisplayRole, field.value);
+	for (const auto &f : field.fields) {
+		treeItem(f, treeWidget, item);
+	}
+	return item;
+}
+
 TraceView::TraceView(QWidget *parent): QWidget(parent) {
 	auto lyt = new QHBoxLayout;
 	setLayout(lyt);
@@ -33,22 +50,36 @@ TraceView::TraceView(QWidget *parent): QWidget(parent) {
 	        [this](const QItemSelection &selected, const QItemSelection &deselected) {
 		auto indexes = selected.indexes();
 		if (indexes.size()) {
-			auto row = indexes[0].row();
-			const auto te = m_model->traceEvent(row);
-			m_callStackModel->setTraceEvent(te);
+			m_selectedEvent = indexes[0].row();
+			const auto te = m_model->traceEvent(m_selectedEvent);
+			m_frameTableModel->setTraceEvent(te);
 		}
 	});
 	m_splitter->addWidget(m_eventTable);
 
-	m_callStack = new QTableView(this);
-	m_callStackModel = new CallStackModel;
-	m_callStack->setModel(m_callStackModel);
-	m_callStack->horizontalHeader()->setStretchLastSection(true);
-	m_callStack->verticalHeader()->hide();
-	m_callStack->setSelectionBehavior(QAbstractItemView::SelectRows);
-	m_callStack->setSelectionMode(QAbstractItemView::SingleSelection);
-	m_splitter->addWidget(m_callStack);
+	// setup lower pane
+	m_lowerSplitter = new QSplitter(this);
 
+	// setup stack trace viewer
+	m_frameTable = new QTableView(this);
+	m_frameTableModel = new CallStackModel;
+	m_frameTable->setModel(m_frameTableModel);
+	m_frameTable->horizontalHeader()->setStretchLastSection(true);
+	m_frameTable->verticalHeader()->hide();
+	m_frameTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+	m_frameTable->setSelectionMode(QAbstractItemView::SingleSelection);
+	connect(m_frameTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, &TraceView::handleFrameSelection);
+	m_lowerSplitter->addWidget(m_frameTable);
+
+	// setup field viewer
+	m_fieldView = new QTreeWidget(this);
+	m_fieldView->header()->setStretchLastSection(true);
+	m_fieldView->setSelectionMode(QAbstractItemView::NoSelection);
+	m_fieldView->setHeaderLabels({tr("Name"), tr("Value")});
+	m_lowerSplitter->addWidget(m_fieldView);
+
+
+	m_splitter->addWidget(m_lowerSplitter);
 	m_splitter->setStretchFactor(0, 2);
 
 	readState();
@@ -63,9 +94,12 @@ void TraceView::readState() {
 	settings.beginGroup("TraceView");
 	m_eventTable->horizontalHeader()->restoreState(settings.value("eventTableState").toByteArray());
 	m_eventTable->horizontalHeader()->restoreGeometry(settings.value("eventTableGeometry").toByteArray());
-	m_callStack->horizontalHeader()->restoreState(settings.value("callStackTableState").toByteArray());
-	m_callStack->horizontalHeader()->restoreGeometry(settings.value("callStackTableGeometry").toByteArray());
+	m_frameTable->horizontalHeader()->restoreState(settings.value("frameTableState").toByteArray());
+	m_frameTable->horizontalHeader()->restoreGeometry(settings.value("frameTableGeometry").toByteArray());
+	m_fieldView->header()->restoreState(settings.value("fieldViewState").toByteArray());
+	m_fieldView->header()->restoreGeometry(settings.value("fieldViewGeometry").toByteArray());
 	m_splitter->restoreState(settings.value("splitterState").toByteArray());
+	m_lowerSplitter->restoreState(settings.value("lowerSplitterState").toByteArray());
 	settings.endGroup();
 }
 
@@ -74,13 +108,28 @@ void TraceView::writeState() {
 	settings.beginGroup("TraceView");
 	settings.setValue("eventTableState", m_eventTable->horizontalHeader()->saveState());
 	settings.setValue("eventTableGeometry", m_eventTable->horizontalHeader()->saveGeometry());
-	settings.setValue("callStackTableState", m_callStack->horizontalHeader()->saveState());
-	settings.setValue("callStackTableGeometry", m_callStack->horizontalHeader()->saveGeometry());
+	settings.setValue("frameTableState", m_frameTable->horizontalHeader()->saveState());
+	settings.setValue("frameTableGeometry", m_frameTable->horizontalHeader()->saveGeometry());
+	settings.setValue("fieldViewState", m_fieldView->header()->saveState());
+	settings.setValue("fieldViewGeometry", m_fieldView->header()->saveGeometry());
 	settings.setValue("splitterState", m_splitter->saveState());
+	settings.setValue("lowerSplitterState", m_lowerSplitter->saveState());
 	settings.endGroup();
 }
 
 void TraceView::setProcessData(ProcessData *data) {
 	m_model->setProcessData(data);
-	m_callStackModel->clear();
+	m_frameTableModel->clear();
+}
+
+void TraceView::handleFrameSelection(const QItemSelection &selected, const QItemSelection &deselected) {
+	auto indexes = selected.indexes();
+	m_fieldView->clear();
+	if (indexes.size()) {
+		auto row = indexes[0].row();
+		const auto te = m_model->traceEvent(m_selectedEvent);
+		for (const auto &field : te.frames[row].fields) {
+			treeItem(field, m_fieldView);
+		}
+	}
 }
