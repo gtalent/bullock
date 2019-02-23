@@ -56,6 +56,17 @@ QVariant CallStackModel::data(const QModelIndex &index, int role) const {
 			default:
 				return {};
 		}
+	} else if (role == Qt::ToolTipRole) {
+		const auto &f = m_frames[index.row()];
+
+		switch (index.column()) {
+			case Column::Function:
+				return f.function;
+			case Column::Source:
+				return QString("%1:%2").arg(f.file).arg(f.line);
+			default:
+				return {};
+		}
 	}
 	return QVariant();
 }

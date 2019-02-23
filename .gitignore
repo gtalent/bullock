@@ -1,3 +1,4 @@
 dist
 build
 Session.vim
+compile_commands.json
