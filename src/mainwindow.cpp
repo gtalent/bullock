@@ -12,6 +12,7 @@
 #include <QDesktopWidget>
 #include <QHBoxLayout>
 #include <QMenuBar>
+#include <QScreen>
 #include <QSettings>
 #include <QSplitter>
 
@@ -20,7 +21,7 @@
 MainWindow::MainWindow() {
 	setWindowTitle(tr("Bullock"));
 
-	auto screenSize = QApplication::desktop()->screenGeometry();
+	auto screenSize = QGuiApplication::screens().first()->geometry();
 	constexpr auto sizePct = 0.85;
 	resize(screenSize.width() * sizePct, screenSize.height() * sizePct);
 	move(-x(), -y());
