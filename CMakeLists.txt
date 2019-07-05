@@ -57,3 +57,11 @@ endif()
 enable_testing()
 
 add_subdirectory(src)
+
+install(
+	FILES
+		rsrc/icons/bullock128.png
+		rsrc/icons/bullock512.png
+	DESTINATION
+		${BULLOCK_DIST_RESOURCES}/icons
+)
