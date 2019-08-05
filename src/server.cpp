@@ -32,13 +32,15 @@ void DataFeed::handleInit() {
 
 void DataFeed::read() {
 	while (m_dev->bytesAvailable()) {
-		const auto doc = QJsonDocument::fromJson(m_dev->readLine());
+		auto json = m_dev->readLine();
+		const auto doc = QJsonDocument::fromJson(json);
 		if (m_procData) {
 			const auto msg = doc.object();
 			if (msg["type"] == "TraceEvent") {
-				const auto te = msg["data"].toObject();
-				m_procData->traceEvents.push_back(te);
+				m_procData->traceEvents.push_back(msg["data"].toObject());
 				emit m_procData->traceEvent(m_procData->traceEvents.last());
+			} else {
+				qDebug().noquote() << "Bad message:" << json;
 			}
 		}
 	}
@@ -46,7 +48,7 @@ void DataFeed::read() {
 
 
 LogServer::LogServer() {
-	m_server->listen(QHostAddress::LocalHost, 5590);
+	m_server->listen(QHostAddress::Any, 5590);
 	connect(m_server, &QTcpServer::newConnection, this, &LogServer::handleConnection);
 }
 
