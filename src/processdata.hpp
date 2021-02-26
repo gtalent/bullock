@@ -38,6 +38,8 @@ struct TraceEvent {
 	QString channel;
 	QString logMsg;
 	QVector<Frame> frames;
+	QString _file;
+	int _line;
 
 	TraceEvent(QJsonObject tp = {});
 

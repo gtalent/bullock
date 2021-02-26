@@ -35,6 +35,8 @@ Frame::Frame(QJsonObject frame) {
 TraceEvent::TraceEvent(QJsonObject tp) {
 	this->channel = tp["channel"].toString();
 	this->logMsg = tp["log_msg"].toString();
+	this->_file = tp["file"].toString();
+	this->_line = tp["line"].toInt();
 	auto frames = tp["frames"].toArray();
 	for (auto frame : frames) {
 		this->frames.push_back(frame.toObject());
@@ -42,10 +44,10 @@ TraceEvent::TraceEvent(QJsonObject tp) {
 }
 
 QString TraceEvent::file() const {
-	return this->frames[0].file;
+	return this->_file;
 }
 
 int TraceEvent::line() const {
-	return this->frames[0].line;
+	return this->_line;
 }
 

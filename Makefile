@@ -33,6 +33,9 @@ test:
 run: install
 	./dist/current/bin/bullock
 
+gdb: install
+	gdb --args ./dist/current/bin/bullock
+
 devenv-image:
 	docker build . -t ${DEVENV_IMAGE}
 devenv-create:
