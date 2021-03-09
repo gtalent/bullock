@@ -10,9 +10,13 @@
 
 #include "server.hpp"
 
-DataFeed::DataFeed(QIODevice *dev): QObject(dev) {
-	m_dev = dev;
-	connect(m_dev, &QIODevice::readyRead, this, &DataFeed::handleInit);
+DataFeed::DataFeed(QIODevice *dev, bool skipInit): QObject(dev) {
+	m_dev = std::unique_ptr<QIODevice>(dev);
+	if (!skipInit) {
+		connect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::handleInit);
+	} else {
+		connect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::read);
+	}
 }
 
 const QSharedPointer<ProcessData> &DataFeed::procData() {
@@ -24,21 +28,24 @@ void DataFeed::handleInit() {
 	if (doc.isObject()) {
 		auto msg = doc.object();
 		if (msg["type"].toString() == "Init") {
-			disconnect(m_dev, &QIODevice::readyRead, this, &DataFeed::handleInit);
-			connect(m_dev, &QIODevice::readyRead, this, &DataFeed::read);
+			disconnect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::handleInit);
+			connect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::read);
 		}
 	}
 }
 
 void DataFeed::read() {
-	while (m_dev->bytesAvailable()) {
-		auto json = m_dev->readLine();
+	while (m_dev && m_dev->bytesAvailable()) {
+		const auto json = m_dev->readLine();
 		const auto doc = QJsonDocument::fromJson(json);
 		if (m_procData) {
 			const auto msg = doc.object();
 			if (msg["type"] == "TraceEvent") {
 				m_procData->traceEvents.push_back(msg["data"].toObject());
 				emit m_procData->traceEvent(m_procData->traceEvents.last());
+			} else if (msg["type"] == "Init") {
+				emit feedEnd(m_dev.get());
+				m_dev.release();
 			} else {
 				qDebug().noquote() << "Bad message:" << json;
 			}
@@ -56,5 +63,13 @@ void LogServer::handleConnection() {
 	auto conn = m_server->nextPendingConnection();
 	connect(conn, &QAbstractSocket::disconnected, conn, &QObject::deleteLater);
 	connect(this, &QObject::destroyed, conn, &QObject::deleteLater);
-	emit newDataFeed(new DataFeed(conn));
+	auto feed = new DataFeed(conn);
+	connect(feed, &DataFeed::feedEnd, this, &LogServer::setupDataFeed);
+	emit newDataFeed(feed);
+}
+
+void LogServer::setupDataFeed(QIODevice *conn) {
+	auto feed = new DataFeed(conn, true);
+	connect(feed, &DataFeed::feedEnd, this, &LogServer::setupDataFeed);
+	emit newDataFeed(feed);
 }

@@ -23,10 +23,10 @@ class DataFeed: public QObject {
 
 	private:
 		QSharedPointer<ProcessData> m_procData = QSharedPointer<ProcessData>(new ProcessData);
-		QIODevice *m_dev = nullptr;
+		std::unique_ptr<QIODevice> m_dev;
 
 	public:
-		DataFeed(QIODevice *dev);
+		DataFeed(QIODevice *dev, bool skipInit = false);
 
 		const QSharedPointer<ProcessData> &procData();
 
@@ -34,6 +34,10 @@ class DataFeed: public QObject {
 		void handleInit();
 
 		void read();
+
+	signals:
+		void feedEnd(QIODevice*);
+
 };
 
 class LogServer: public QObject {
@@ -48,6 +52,9 @@ class LogServer: public QObject {
 	public slots:
 		void handleConnection();
 
+		void setupDataFeed(QIODevice *conn);
+
 	signals:
 		void newDataFeed(DataFeed*);
+
 };

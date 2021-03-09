@@ -34,7 +34,7 @@ class TraceView: public QWidget {
 	public:
 		TraceView(QWidget *parent = nullptr);
 
-		~TraceView();
+		~TraceView() override;
 
 		void setProcessData(ProcessData *data);
 
