@@ -26,7 +26,7 @@ class DataFeed: public QObject {
 		std::unique_ptr<QIODevice> m_dev;
 
 	public:
-		DataFeed(QIODevice *dev, bool skipInit = false);
+		explicit DataFeed(QIODevice *dev, bool skipInit = false);
 
 		const QSharedPointer<ProcessData> &procData();
 

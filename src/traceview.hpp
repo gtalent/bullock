@@ -32,7 +32,7 @@ class TraceView: public QWidget {
 		TraceEventModel *m_model = nullptr;
 
 	public:
-		TraceView(QWidget *parent = nullptr);
+		explicit TraceView(QWidget *parent = nullptr);
 
 		~TraceView() override;
 
