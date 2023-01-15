@@ -23,6 +23,7 @@ class MainWindow: public QMainWindow {
 		ProcessData *m_currentProc = nullptr;
 		ProcessSelector *m_procSelector = nullptr;
 		TraceView *m_traceView = nullptr;
+		ChannelView *m_channelView = nullptr;
 
 	public:
 		MainWindow();

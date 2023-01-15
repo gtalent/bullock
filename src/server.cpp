@@ -8,14 +8,17 @@
 
 #include <QDebug>
 
+#include <ox/mc/read.hpp>
+#include <ox/std/trace.hpp>
+
 #include "server.hpp"
 
 DataFeed::DataFeed(QIODevice *dev, bool skipInit): QObject(dev) {
-	m_dev = std::unique_ptr<QIODevice>(dev);
+	m_dev = dev;
 	if (!skipInit) {
-		connect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::handleInit);
+		connect(m_dev, &QIODevice::readyRead, this, &DataFeed::handleInit);
 	} else {
-		connect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::read);
+		connect(m_dev, &QIODevice::readyRead, this, &DataFeed::read);
 	}
 }
 
@@ -24,33 +27,98 @@ const QSharedPointer<ProcessData> &DataFeed::procData() {
 }
 
 void DataFeed::handleInit() {
-	auto doc = QJsonDocument::fromJson(m_dev->readLine());
-	if (doc.isObject()) {
-		auto msg = doc.object();
-		if (msg["type"].toString() == "Init") {
-			disconnect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::handleInit);
-			connect(m_dev.get(), &QIODevice::readyRead, this, &DataFeed::read);
+	const auto init = [&] {
+		disconnect(m_dev, &QIODevice::readyRead, this, &DataFeed::handleInit);
+		connect(m_dev, &QIODevice::readyRead, this, &DataFeed::read);
+	};
+	ox::trace::MsgId peekChar;
+	m_dev->peek(reinterpret_cast<char*>(&peekChar), 1);
+	if (peekChar == ox::trace::MsgId::Json) {
+		auto doc = QJsonDocument::fromJson(m_dev->readLine());
+		if (doc.isObject()) {
+			auto msg = doc.object();
+			if (msg["type"].toString() == "Init") {
+				init();
+			}
 		}
+	} else if (peekChar == ox::trace::MsgId::Init) {
+		m_dev->skip(1);
+		init();
 	}
 }
 
 void DataFeed::read() {
 	while (m_dev && m_dev->bytesAvailable()) {
-		const auto json = m_dev->readLine();
-		const auto doc = QJsonDocument::fromJson(json);
-		if (m_procData) {
-			const auto msg = doc.object();
-			if (msg["type"] == "TraceEvent") {
-				m_procData->traceEvents.push_back(msg["data"].toObject());
-				emit m_procData->traceEvent(m_procData->traceEvents.last());
-			} else if (msg["type"] == "Init") {
-				emit feedEnd(m_dev.get());
-				m_dev.release();
-			} else {
-				qDebug().noquote() << "Bad message:" << json;
+		ox::trace::MsgId msgId;
+		m_dev->peek(reinterpret_cast<char*>(&msgId), 1);
+		if (msgId == ox::trace::MsgId::Json) {
+			const auto json = m_dev->readLine();
+			const auto doc = QJsonDocument::fromJson(json);
+			if (m_procData) {
+				const auto msg = doc.object();
+				if (msg["type"] == "TraceEvent") {
+					addTraceEvent(msg["data"].toObject());
+				} else if (msg["type"] == "Init") {
+					endFeed();
+				} else {
+					qDebug().noquote() << "Bad message:" << json;
+				}
 			}
+		} else if (msgId == ox::trace::MsgId::TraceEvent) {
+			if (m_dev->bytesAvailable() > 5) {
+				handleMcTraceEvent();
+			}
+		} else if (msgId == ox::trace::MsgId::Init) {
+			endFeed();
+		} else {
+			qDebug().noquote() << "Bad message id:" << static_cast<int>(msgId);
+			qDebug() << "Connection is in invalid state, ending.";
+			m_dev->close();
+			m_dev->deleteLater();
 		}
 	}
+}
+
+void DataFeed::handleMcTraceEvent() {
+	ox::Array<char, 5> hdrBuff;
+	m_dev->peek(hdrBuff.data(), hdrBuff.size());
+	const auto msgSize = *reinterpret_cast<uint32_t*>(&hdrBuff[1]);
+	if (m_dev->bytesAvailable() < msgSize) {
+		return;
+	}
+	m_dev->skip(5);
+	auto msgBuff = ox_malloca(msgSize, char);
+	m_dev->read(msgBuff.get(), msgSize);
+	const auto [msg, err] = ox::readMC<ox::trace::TraceMsgRcv>(msgBuff.get(), msgSize);
+	if (err) [[unlikely]] {
+		qDebug().noquote() << "Bad message";
+		return;
+	}
+	addTraceEvent(msg);
+}
+
+void DataFeed::endFeed() {
+	disconnect(m_dev, &QIODevice::readyRead, this, &DataFeed::read);
+	emit feedEnd(m_dev);
+	m_dev = nullptr;
+}
+
+static ProcessData::ChannelEntry &chEntry(auto *list, ChId id) {
+	if (id >= list->size()) {
+		list->resize(id + 1);
+	}
+	return (*list)[id];
+}
+
+void DataFeed::addTraceEvent(TraceEvent teSrc) {
+	const auto &te = m_procData->traceEvents.emplace_back(std::move(teSrc));
+	auto &ce = chEntry(&m_procData->channels, te._channel);
+	if (!ce.present) {
+		ce.present = true;
+		emit m_procData->channelAdded(te._channel);
+	}
+	emit m_procData->channelInc(te._channel);
+	emit m_procData->traceEvent(m_procData->traceEvents.size() - 1);
 }
 
 

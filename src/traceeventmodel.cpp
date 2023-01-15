@@ -8,13 +8,18 @@
 
 #include <QDebug>
 
+#include "channelview.hpp"
 #include "traceeventmodel.hpp"
 
-int TraceEventModel::rowCount(const QModelIndex &parent) const {
-	return m_traceEvents.size();
+TraceEventModel::TraceEventModel(ChannelView *cv) {
+	m_channelView = cv;
 }
 
-int TraceEventModel::columnCount(const QModelIndex &parent) const {
+int TraceEventModel::rowCount(const QModelIndex&) const {
+	return m_visibleTraceEvents.size();
+}
+
+int TraceEventModel::columnCount(const QModelIndex&) const {
 	return Column::End;
 }
 
@@ -43,16 +48,16 @@ QVariant TraceEventModel::data(const QModelIndex &index, int role) const {
 		return QVariant();
 	}
 
-	if (index.row() >= m_traceEvents.size() || index.row() < 0) {
+	if (index.row() >= m_visibleTraceEvents.size() || index.row() < 0) {
 		return QVariant();
 	}
 
 	if (role == Qt::DisplayRole) {
-		const auto &te = m_traceEvents[index.row()];
-
+		const auto eventId = m_visibleTraceEvents[index.row()];
+		const auto &te = m_procData->traceEvents[eventId];
 		switch (index.column()) {
 			case Column::Channel:
-				return te.channel;
+				return te.channel();
 			case Column::Source:
 				return QString("%1:%2").arg(te.file()).arg(te.line());
 			case Column::Message:
@@ -65,31 +70,51 @@ QVariant TraceEventModel::data(const QModelIndex &index, int role) const {
 }
 
 void TraceEventModel::setProcessData(ProcessData *data) {
-	beginResetModel();
-	m_traceEvents.clear();
 	if (m_procData) {
 		disconnect(m_procData, &ProcessData::traceEvent, this, &TraceEventModel::addEvent);
+		disconnect(m_procData, &ProcessData::channelToggled, this, &TraceEventModel::resetChannels);
 	}
 	m_procData = data;
 	if (m_procData) {
-		for (const auto &te : m_procData->traceEvents) {
-			m_traceEvents.push_back(te);
-		}
 		connect(m_procData, &ProcessData::traceEvent, this, &TraceEventModel::addEvent);
+		connect(m_procData, &ProcessData::channelToggled, this, &TraceEventModel::resetChannels);
+		resetChannels();
+	}
+}
+
+const TraceEvent &TraceEventModel::traceEvent(int row) {
+	return m_procData->traceEvents[m_visibleTraceEvents[row]];
+}
+
+void TraceEventModel::addEvent(std::size_t idx) {
+	const auto &te = m_procData->traceEvents[idx];
+	const auto &ch = m_procData->channels[te._channel];
+	if (ch.channel->enabled()) {
+		addVisibleEvent(idx);
+	}
+}
+
+void TraceEventModel::addVisibleEvent(std::size_t idx) {
+	auto index = m_procData->traceEvents.size();
+	beginInsertRows(QModelIndex(), index, index);
+	m_visibleTraceEvents.push_back(idx);
+	endInsertRows();
+}
+
+void TraceEventModel::clearVisibleEvents() {
+	m_visibleTraceEvents.clear();
+}
+
+void TraceEventModel::resetChannels() {
+	beginResetModel();
+	m_visibleTraceEvents.clear();
+	for (auto i = 0l; i < m_procData->traceEvents.size(); ++i) {
+		const auto &te = m_procData->traceEvents[i];
+		const auto &ch = m_procData->channels[te._channel];
+		if (ch.channel->enabled()) {
+			m_visibleTraceEvents.push_back(i);
+		}
 	}
 	endResetModel();
 }
 
-TraceEvent TraceEventModel::traceEvent(int row) {
-	if (m_procData) {
-		return m_procData->traceEvents[row];
-	}
-	return {};
-}
-
-void TraceEventModel::addEvent(const TraceEvent &event) {
-	auto index = m_traceEvents.size();
-	beginInsertRows(QModelIndex(), index, index);
-	m_traceEvents.push_back(event);
-	endInsertRows();
-}

@@ -10,11 +10,11 @@
 
 #include "callstackmodel.hpp"
 
-int CallStackModel::rowCount(const QModelIndex &parent) const {
+int CallStackModel::rowCount(const QModelIndex&) const {
 	return m_frames.size();
 }
 
-int CallStackModel::columnCount(const QModelIndex &parent) const {
+int CallStackModel::columnCount(const QModelIndex&) const {
 	return Column::End;
 }
 

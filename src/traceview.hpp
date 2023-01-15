@@ -30,9 +30,10 @@ class TraceView: public QWidget {
 		QSplitter *m_lowerSplitter = nullptr;
 		CallStackModel *m_frameTableModel = nullptr;
 		TraceEventModel *m_model = nullptr;
+		class ChannelView *m_channelView = nullptr;
 
 	public:
-		explicit TraceView(QWidget *parent = nullptr);
+		explicit TraceView(class ChannelView *cv, QWidget *parent = nullptr);
 
 		~TraceView() override;
 

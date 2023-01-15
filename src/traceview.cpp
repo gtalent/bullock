@@ -33,7 +33,8 @@ static QTreeWidgetItem *treeItem(const Field &field, QTreeWidget *treeWidget, QT
 	return item;
 }
 
-TraceView::TraceView(QWidget *parent): QWidget(parent) {
+TraceView::TraceView(class ChannelView *cv, QWidget *parent): QWidget(parent) {
+	m_channelView = cv;
 	auto lyt = new QHBoxLayout;
 	setLayout(lyt);
 
@@ -41,14 +42,14 @@ TraceView::TraceView(QWidget *parent): QWidget(parent) {
 	lyt->addWidget(m_splitter);
 
 	m_eventTable = new QTableView(this);
-	m_model = new TraceEventModel;
+	m_model = new TraceEventModel(cv);
 	m_eventTable->setModel(m_model);
 	m_eventTable->horizontalHeader()->setStretchLastSection(true);
 	m_eventTable->verticalHeader()->hide();
 	m_eventTable->setSelectionBehavior(QAbstractItemView::SelectRows);
 	m_eventTable->setSelectionMode(QAbstractItemView::SingleSelection);
 	connect(m_eventTable->selectionModel(), &QItemSelectionModel::selectionChanged,
-	        [this](const QItemSelection &selected, const QItemSelection &deselected) {
+	        [this](const QItemSelection &selected, const QItemSelection&) {
 		m_frameTableModel->clear();
 		m_fieldView->clear();
 		auto indexes = selected.indexes();
@@ -100,6 +101,7 @@ void TraceView::readState() {
 	m_eventTable->horizontalHeader()->restoreGeometry(settings.value("eventTableGeometry").toByteArray());
 	m_frameTable->horizontalHeader()->restoreState(settings.value("frameTableState").toByteArray());
 	m_frameTable->horizontalHeader()->restoreGeometry(settings.value("frameTableGeometry").toByteArray());
+	m_frameTable->setAlternatingRowColors(true);
 	m_fieldView->header()->restoreState(settings.value("fieldViewState").toByteArray());
 	m_fieldView->header()->restoreGeometry(settings.value("fieldViewGeometry").toByteArray());
 	m_splitter->restoreState(settings.value("splitterState").toByteArray());
@@ -127,7 +129,7 @@ void TraceView::setProcessData(ProcessData *data) {
 	m_fieldView->clear();
 }
 
-void TraceView::handleFrameSelection(const QItemSelection &selected, const QItemSelection &deselected) {
+void TraceView::handleFrameSelection(const QItemSelection &selected, const QItemSelection&) {
 	auto indexes = selected.indexes();
 	m_fieldView->clear();
 	if (indexes.size()) {

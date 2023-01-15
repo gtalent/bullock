@@ -25,10 +25,14 @@ class TraceEventModel: public QAbstractTableModel {
 		};
 
 	private:
-		QVector<TraceEvent> m_traceEvents;
+		using TraceEventIdx = int;
+		QVector<TraceEventIdx> m_visibleTraceEvents;
 		ProcessData *m_procData = nullptr;
+		class ChannelView *m_channelView = nullptr;
 
 	public:
+		explicit TraceEventModel(class ChannelView *cv);
+
 		int rowCount(const QModelIndex &parent = QModelIndex()) const override ;
 
 		int columnCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -39,9 +43,17 @@ class TraceEventModel: public QAbstractTableModel {
 
 		void setProcessData(ProcessData *data);
 
-		TraceEvent traceEvent(int row);
+		[[nodiscard]]
+		const TraceEvent &traceEvent(int row);
 
 	public slots:
-		void addEvent(const TraceEvent &event);
+		void addEvent(std::size_t idx);
+
+	private:
+		void addVisibleEvent(std::size_t idx);
+
+		void clearVisibleEvents();
+
+		void resetChannels();
 
 };

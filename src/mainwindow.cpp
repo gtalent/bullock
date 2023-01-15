@@ -9,12 +9,13 @@
 #include <QAction>
 #include <QApplication>
 #include <QDateTime>
-#include <QDesktopWidget>
 #include <QHBoxLayout>
 #include <QMenuBar>
 #include <QScreen>
 #include <QSettings>
 #include <QSplitter>
+
+#include "channelview.hpp"
 
 #include "mainwindow.hpp"
 
@@ -32,12 +33,14 @@ MainWindow::MainWindow() {
 
 	auto leftPane = new QWidget(this);
 	auto leftPaneSplitter = new QSplitter(Qt::Vertical, leftPane);
+	m_channelView = new ChannelView(this);
+	leftPaneSplitter->addWidget(m_channelView);
 	m_procSelector = new ProcessSelector(leftPaneSplitter);
 	connect(m_procSelector, &ProcessSelector::selectionChanged, this, &MainWindow::setProcess);
 	leftPaneSplitter->addWidget(m_procSelector);
 
 	m_splitter->addWidget(leftPaneSplitter);
-	m_traceView = new TraceView(m_splitter);
+	m_traceView = new TraceView(m_channelView, m_splitter);
 	m_splitter->addWidget(m_traceView);
 	m_splitter->setStretchFactor(1, 3);
 
@@ -64,6 +67,8 @@ void MainWindow::readState() {
 	QSettings settings;
 	settings.beginGroup("MainWindow");
 	m_splitter->restoreState(settings.value("splitterState").toByteArray());
+	restoreGeometry(settings.value("geometry").toByteArray());
+	restoreState(settings.value("state").toByteArray());
 	settings.endGroup();
 }
 
@@ -71,6 +76,8 @@ void MainWindow::writeState() {
 	QSettings settings;
 	settings.beginGroup("MainWindow");
 	settings.setValue("splitterState", m_splitter->saveState());
+	settings.setValue("geometry", saveGeometry());
+	settings.setValue("state", saveState());
 	settings.endGroup();
 }
 
@@ -81,6 +88,7 @@ void MainWindow::setProcess(QString procKey) {
 		m_currentProc = nullptr;
 	}
 	m_traceView->setProcessData(m_currentProc);
+	m_channelView->setProcessData(m_currentProc);
 }
 
 void MainWindow::setupMenu() {
