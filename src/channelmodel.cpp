@@ -147,10 +147,6 @@ Channel *ChannelModel::createChannel(Channel *ch, const QStringList &name, int i
 		child = (*ch->children.emplace(insertPt, ox::make_unique<Channel>(childId, ch))).get();
 		m_procData->channels[childId].channel = child;
 		endInsertRows();
-		//ch->children.empty
-		//std::sort(ch->children.begin(), ch->children.end(), [](const auto &a, const auto &b) {
-		//	return a->name() < b->name();
-		//});
 	}
 	return createChannel(child, name, it + 1);
 }
@@ -160,7 +156,10 @@ void ChannelModel::addChannel(ChId chId) {
 }
 
 void ChannelModel::incChannel(ChId chId) {
-	++m_procData->channels[chId].channel->msgCnt;
+	auto ch = m_procData->channels[chId].channel;
+	++ch->msgCnt;
+	const auto idx = createIndex(ch->row(), 0, ch);
+	emit dataChanged({}, idx);
 }
 
 void ChannelModel::setProcessData(ProcessData *data) {
