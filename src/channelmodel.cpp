@@ -69,14 +69,21 @@ QVariant ChannelModel::data(const QModelIndex &index, int role) const {
 					return item->on ? Qt::Checked : Qt::Unchecked;
 			}
 			break;
+		case Qt::TextAlignmentRole:
+			switch (index.column()) {
+				case ColChildCount:
+				case ColCount:
+					return Qt::AlignRight;
+			}
+			break;
 		case Qt::DisplayRole:
 			switch (index.column()) {
 				case ColName:
 					return item->name();
 				case ColCount:
-					return item->msgCnt;
+					return QString("%L2").arg(item->msgCnt);
 				case ColChildCount:
-					return item->msgCnt + item->childrenMsgCnt();
+					return QString("%L2").arg(item->msgCnt + item->childrenMsgCnt());
 			}
 	}
 	return {};
