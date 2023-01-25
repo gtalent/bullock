@@ -40,7 +40,8 @@ class DataFeed: public QObject {
 		void read();
 
 	private:
-		void handleMcTraceEvent();
+		// Returns true if read complete, false if there is incomplete data.
+		bool handleMcTraceEvent();
 
 		void endFeed();
 

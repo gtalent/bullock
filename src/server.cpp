@@ -42,7 +42,20 @@ void DataFeed::handleInit() {
 			}
 		}
 	} else if (peekChar == ox::trace::MsgId::Init) {
-		m_dev->skip(1);
+		ox::Array<char, 5> hdrBuff;
+		m_dev->peek(hdrBuff.data(), hdrBuff.size());
+		const auto msgSize = *reinterpret_cast<uint32_t*>(&hdrBuff[1]);
+		while (m_dev->bytesAvailable() < msgSize && m_dev->isOpen()) {
+			m_dev->waitForBytesWritten(1);
+		}
+		m_dev->skip(5);
+		auto msgBuff = ox_malloca(msgSize, char);
+		m_dev->read(msgBuff.get(), msgSize);
+		const auto [msg, err] = ox::readMC<ox::trace::InitTraceMsgRcv>(msgBuff.get(), msgSize);
+		if (err) [[unlikely]] {
+			qDebug().noquote() << "Bad message";
+			return;
+		}
 		init();
 	}
 }
@@ -51,7 +64,16 @@ void DataFeed::read() {
 	while (m_dev && m_dev->bytesAvailable()) {
 		ox::trace::MsgId msgId;
 		m_dev->peek(reinterpret_cast<char*>(&msgId), 1);
-		if (msgId == ox::trace::MsgId::Json) {
+		if (msgId == ox::trace::MsgId::Init && !m_dev->isOpen()) {
+			qInfo() << "Connection closed";
+			break;
+		} else if (msgId == ox::trace::MsgId::TraceEvent) {
+			if (m_dev->bytesAvailable() > 5) {
+				if (!handleMcTraceEvent()) {
+					break;
+				}
+			}
+		} else if (msgId == ox::trace::MsgId::Json) {
 			const auto json = m_dev->readLine();
 			const auto doc = QJsonDocument::fromJson(json);
 			if (m_procData) {
@@ -59,17 +81,13 @@ void DataFeed::read() {
 				if (msg["type"] == "TraceEvent") {
 					addTraceEvent(msg["data"].toObject());
 				} else if (msg["type"] == "Init") {
+					qInfo() << "Connection closed";
 					endFeed();
+					break;
 				} else {
 					qDebug().noquote() << "Bad message:" << json;
 				}
 			}
-		} else if (msgId == ox::trace::MsgId::TraceEvent) {
-			if (m_dev->bytesAvailable() > 5) {
-				handleMcTraceEvent();
-			}
-		} else if (msgId == ox::trace::MsgId::Init) {
-			endFeed();
 		} else {
 			qDebug().noquote() << "Bad message id:" << static_cast<int>(msgId);
 			qDebug() << "Connection is in invalid state, ending.";
@@ -79,12 +97,12 @@ void DataFeed::read() {
 	}
 }
 
-void DataFeed::handleMcTraceEvent() {
+bool DataFeed::handleMcTraceEvent() {
 	ox::Array<char, 5> hdrBuff;
 	m_dev->peek(hdrBuff.data(), hdrBuff.size());
 	const auto msgSize = *reinterpret_cast<uint32_t*>(&hdrBuff[1]);
 	if (m_dev->bytesAvailable() < msgSize) {
-		return;
+		return false;
 	}
 	m_dev->skip(5);
 	auto msgBuff = ox_malloca(msgSize, char);
@@ -92,9 +110,10 @@ void DataFeed::handleMcTraceEvent() {
 	const auto [msg, err] = ox::readMC<ox::trace::TraceMsgRcv>(msgBuff.get(), msgSize);
 	if (err) [[unlikely]] {
 		qDebug().noquote() << "Bad message";
-		return;
+		return true;
 	}
 	addTraceEvent(msg);
+	return true;
 }
 
 void DataFeed::endFeed() {
