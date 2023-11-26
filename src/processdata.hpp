@@ -17,7 +17,7 @@
 
 using ChId = int;
 
-constexpr auto ChannelSplitter = "::";
+constexpr auto ChannelSplitter = ".";
 
 [[nodiscard]]
 const QString &getChannelFullName(ChId id);
